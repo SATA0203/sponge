@@ -20,7 +20,9 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
+
+# Database
+sponge.db
 
 # Environment
 .env
@@ -40,13 +42,9 @@ ENV/
 # Logs
 *.log
 
-# Coverage
+# Testing
+.pytest_cache/
 .coverage
 htmlcov/
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
+coverage/
 ```
