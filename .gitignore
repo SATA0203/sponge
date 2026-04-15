@@ -1,52 +1,13 @@
 ```
-# Documentation builds and temporary files
-sponge/docs/*.tmp
-sponge/docs/*.log
-sponge/docs/_build/
-sponge/docs/build/
-sponge/docs/.doctrees/
-sponge/docs/.cache/
-
-# General temp and log files
-*.tmp
-*.log
-*.swp
-*.swo
-
-# Environment files
-.env
-.env.local
-*.env.*
-
-# Python specific
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+*.so
 .Python
-env/
-venv/
-.venv/
-.ENV
-.python-version
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git/modules/
-.DS_Store
-Thumbs.db
-
-# Build artifacts
-dist/
 build/
 develop-eggs/
+dist/
 downloads/
 eggs/
 .eggs/
@@ -59,22 +20,33 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# IDE specific
+# Environment
+.env
+.env.local
+.env.*
+.venv/
+venv/
+ENV/
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
-.\#*
-#*#
+*.tmp
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Logs
+*.log
+
+# Coverage
+.coverage
+htmlcov/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
 ```

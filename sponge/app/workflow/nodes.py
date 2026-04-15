@@ -5,7 +5,7 @@ Workflow Nodes - Individual agent nodes for the LangGraph workflow
 from typing import Any, Dict, TypedDict
 from loguru import logger
 
-from app.agents import PlannerAgent, CoderAgent, ReviewerAgent
+from app.agents import PlannerAgent, CoderAgent, ReviewerAgent, TesterAgent
 from app.tools.code_executor import CodeExecutor
 from app.core.llm_service import get_llm
 
@@ -20,6 +20,7 @@ class WorkflowState(TypedDict):
     code: Dict[str, Any]
     execution_result: Dict[str, Any]
     review_result: Dict[str, Any]
+    test_result: Dict[str, Any]
     iterations: int
     max_iterations: int
     error: str
@@ -30,6 +31,7 @@ class WorkflowState(TypedDict):
 _planner_agent = None
 _coder_agent = None
 _reviewer_agent = None
+_tester_agent = None
 _code_executor = None
 
 
@@ -55,6 +57,14 @@ def _get_reviewer_agent():
         llm = get_llm()
         _reviewer_agent = ReviewerAgent(llm)
     return _reviewer_agent
+
+
+def _get_tester_agent():
+    global _tester_agent
+    if _tester_agent is None:
+        llm = get_llm()
+        _tester_agent = TesterAgent(llm)
+    return _tester_agent
 
 
 def _get_code_executor():
@@ -213,6 +223,51 @@ async def reviewer_node(state: WorkflowState) -> Dict[str, Any]:
         
     except Exception as e:
         logger.error(f"[Reviewer] Error: {e}")
+        return {
+            "error": str(e),
+            "status": "failed",
+        }
+
+
+async def tester_node(state: WorkflowState) -> Dict[str, Any]:
+    """
+    Tester node - Tests the generated code
+
+    Args:
+        state: Current workflow state
+
+    Returns:
+        Updated state with test results
+    """
+    logger.info(f"[Tester] Testing code for task: {state['task_id']}")
+
+    try:
+        agent = _get_tester_agent()
+        code_data = state.get("code", {})
+        code = code_data.get("code", "")
+
+        result = await agent.execute({
+            "code": code,
+            "description": state["description"],
+            "language": state["language"],
+            "execution_result": state.get("execution_result", {}),
+        })
+
+        passed = result.get("passed", False)
+        test_cases = len(result.get("test_cases", []))
+
+        if passed:
+            logger.info(f"[Tester] All {test_cases} test cases passed")
+        else:
+            logger.warning(f"[Tester] Some tests failed ({test_cases} test cases)")
+
+        return {
+            "test_result": result,
+            "status": "testing_complete",
+        }
+
+    except Exception as e:
+        logger.error(f"[Tester] Error: {e}")
         return {
             "error": str(e),
             "status": "failed",

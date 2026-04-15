@@ -8,6 +8,7 @@ from .nodes import (
     coder_node,
     executor_node,
     reviewer_node,
+    tester_node,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "coder_node",
     "executor_node",
     "reviewer_node",
+    "tester_node",
 ]
