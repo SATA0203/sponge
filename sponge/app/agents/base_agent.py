@@ -56,7 +56,7 @@ class BaseAgent(ABC):
     
     async def _invoke_llm(self, messages: List[Any]) -> str:
         """
-        Invoke LLM with messages
+        Invoke LLM with messages and retry logic
         
         Args:
             messages: List of messages to send to LLM
@@ -64,11 +64,14 @@ class BaseAgent(ABC):
         Returns:
             LLM response as string
         """
+        from app.core.llm_service import invoke_llm_with_retry
+        
         try:
-            response = await self.llm.ainvoke(messages)
+            # Use retry wrapper for better fault tolerance
+            response = await invoke_llm_with_retry(self.llm, messages)
             return response.content if hasattr(response, 'content') else str(response)
         except Exception as e:
-            logger.error(f"LLM invocation failed for {self.name}: {e}")
+            logger.error(f"LLM invocation failed for {self.name} after retries: {e}")
             raise
     
     def _build_messages(

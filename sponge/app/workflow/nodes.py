@@ -27,51 +27,33 @@ class WorkflowState(TypedDict):
     status: str
 
 
-# Initialize agents (lazy initialization)
-_planner_agent = None
-_coder_agent = None
-_reviewer_agent = None
-_tester_agent = None
-_code_executor = None
+def _create_planner_agent():
+    """Create a new planner agent instance for this task"""
+    llm = get_llm()
+    return PlannerAgent(llm)
 
 
-def _get_planner_agent():
-    global _planner_agent
-    if _planner_agent is None:
-        llm = get_llm()
-        _planner_agent = PlannerAgent(llm)
-    return _planner_agent
+def _create_coder_agent():
+    """Create a new coder agent instance for this task"""
+    llm = get_llm()
+    return CoderAgent(llm)
 
 
-def _get_coder_agent():
-    global _coder_agent
-    if _coder_agent is None:
-        llm = get_llm()
-        _coder_agent = CoderAgent(llm)
-    return _coder_agent
+def _create_reviewer_agent():
+    """Create a new reviewer agent instance for this task"""
+    llm = get_llm()
+    return ReviewerAgent(llm)
 
 
-def _get_reviewer_agent():
-    global _reviewer_agent
-    if _reviewer_agent is None:
-        llm = get_llm()
-        _reviewer_agent = ReviewerAgent(llm)
-    return _reviewer_agent
-
-
-def _get_tester_agent():
-    global _tester_agent
-    if _tester_agent is None:
-        llm = get_llm()
-        _tester_agent = TesterAgent(llm)
-    return _tester_agent
+def _create_tester_agent():
+    """Create a new tester agent instance for this task"""
+    llm = get_llm()
+    return TesterAgent(llm)
 
 
 def _get_code_executor():
-    global _code_executor
-    if _code_executor is None:
-        _code_executor = CodeExecutor()
-    return _code_executor
+    """Get code executor instance (stateless, safe to reuse)"""
+    return CodeExecutor()
 
 
 async def planner_node(state: WorkflowState) -> Dict[str, Any]:
@@ -87,7 +69,8 @@ async def planner_node(state: WorkflowState) -> Dict[str, Any]:
     logger.info(f"[Planner] Creating plan for task: {state['task_id']}")
     
     try:
-        agent = _get_planner_agent()
+        # Create fresh agent instance for this task
+        agent = _create_planner_agent()
         result = await agent.execute({
             "description": state["description"],
             "language": state["language"],
@@ -121,7 +104,8 @@ async def coder_node(state: WorkflowState) -> Dict[str, Any]:
     logger.info(f"[Coder] Generating code for task: {state['task_id']}")
     
     try:
-        agent = _get_coder_agent()
+        # Create fresh agent instance for this task
+        agent = _create_coder_agent()
         result = await agent.execute({
             "description": state["description"],
             "language": state["language"],
@@ -197,7 +181,8 @@ async def reviewer_node(state: WorkflowState) -> Dict[str, Any]:
     logger.info(f"[Reviewer] Reviewing code for task: {state['task_id']}")
     
     try:
-        agent = _get_reviewer_agent()
+        # Create fresh agent instance for this task
+        agent = _create_reviewer_agent()
         code_data = state.get("code", {})
         code = code_data.get("code", "")
         
@@ -242,7 +227,8 @@ async def tester_node(state: WorkflowState) -> Dict[str, Any]:
     logger.info(f"[Tester] Testing code for task: {state['task_id']}")
 
     try:
-        agent = _get_tester_agent()
+        # Create fresh agent instance for this task
+        agent = _create_tester_agent()
         code_data = state.get("code", {})
         code = code_data.get("code", "")
 

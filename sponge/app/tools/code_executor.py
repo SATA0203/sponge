@@ -19,7 +19,7 @@ class CodeExecutor:
         self,
         timeout: int = 30,
         memory_limit: str = "512m",
-        use_docker: bool = False,
+        use_docker: bool = True,  # Changed default to True for security
     ):
         """
         Initialize code executor
@@ -27,11 +27,19 @@ class CodeExecutor:
         Args:
             timeout: Execution timeout in seconds
             memory_limit: Memory limit for execution
-            use_docker: Whether to use Docker sandbox
+            use_docker: Whether to use Docker sandbox (default: True for security)
         """
         self.timeout = timeout
         self.memory_limit = memory_limit
         self.use_docker = use_docker
+        
+        if not self.use_docker:
+            logger.warning(
+                "⚠️  SECURITY WARNING: Running code WITHOUT Docker sandbox! "
+                "This allows arbitrary code execution on the host system. "
+                "Set use_docker=True for production use."
+            )
+        
         logger.info(f"Initialized CodeExecutor (timeout={timeout}s, docker={use_docker})")
     
     async def execute(
@@ -96,7 +104,23 @@ class CodeExecutor:
         input_data: Optional[str] = None,
         dependencies: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Execute Python code"""
+        """Execute Python code with security restrictions"""
+        # Security check: Block dangerous operations when not using Docker
+        if not self.use_docker:
+            dangerous_patterns = [
+                'os.system', 'subprocess', 'eval(', 'exec(', 
+                '__import__', 'open(', 'importlib', 'pickle'
+            ]
+            for pattern in dangerous_patterns:
+                if pattern in code:
+                    logger.warning(f"Blocked potentially dangerous code: {pattern}")
+                    return {
+                        "success": False,
+                        "output": "",
+                        "error": f"Security violation: Use of '{pattern}' is not allowed without Docker sandbox",
+                        "execution_time": 0,
+                    }
+        
         # Install dependencies if provided
         if dependencies:
             await self._install_dependencies(dependencies, "python")
@@ -149,7 +173,23 @@ class CodeExecutor:
         input_data: Optional[str] = None,
         dependencies: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Execute JavaScript code using Node.js"""
+        """Execute JavaScript code using Node.js with security restrictions"""
+        # Security check: Block dangerous operations when not using Docker
+        if not self.use_docker:
+            dangerous_patterns = [
+                'require(', 'eval(', 'Function(', 'vm.', 
+                'child_process', 'fs.', 'exec', 'spawn'
+            ]
+            for pattern in dangerous_patterns:
+                if pattern in code:
+                    logger.warning(f"Blocked potentially dangerous code: {pattern}")
+                    return {
+                        "success": False,
+                        "output": "",
+                        "error": f"Security violation: Use of '{pattern}' is not allowed without Docker sandbox",
+                        "execution_time": 0,
+                    }
+        
         # Install dependencies if provided
         if dependencies:
             await self._install_dependencies(dependencies, "javascript")
@@ -199,9 +239,24 @@ class CodeExecutor:
         dependencies: List[str],
         language: str,
     ):
-        """Install dependencies for the specified language"""
+        """Install dependencies for the specified language with security restrictions"""
         if not dependencies:
             return
+        
+        # Security check: Block dependency installation when not using Docker
+        if not self.use_docker:
+            logger.warning(
+                "⚠️  SECURITY WARNING: Installing dependencies without Docker sandbox! "
+                "This could install malicious packages on the host system."
+            )
+            # Limit the number of dependencies to prevent abuse
+            if len(dependencies) > 5:
+                return {
+                    "success": False,
+                    "output": "",
+                    "error": f"Security violation: Cannot install more than 5 dependencies without Docker sandbox (requested: {len(dependencies)})",
+                    "execution_time": 0,
+                }
         
         try:
             if language == "python":

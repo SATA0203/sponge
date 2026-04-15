@@ -1,8 +1,9 @@
 """
-LLM Service - Manages language model connections and initialization
+LLM Service - Manages language model connections and initialization with retry logic
 """
 
 from typing import Optional, Any
+import asyncio
 from langchain_openai import ChatOpenAI
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models import FakeListLLM
@@ -12,7 +13,7 @@ from app.core.config import settings
 
 
 class LLMService:
-    """Service for managing LLM instances"""
+    """Service for managing LLM instances with retry and rate limiting"""
     
     _instance: Optional["LLMService"] = None
     _llm: Optional[Any] = None
@@ -26,7 +27,72 @@ class LLMService:
         if not hasattr(self, "_initialized"):
             self._initialized = True
             self._llm = None
-            logger.info("Initialized LLMService")
+            # Retry configuration
+            self.max_retries = 3
+            self.base_delay = 1.0  # seconds
+            self.max_delay = 30.0  # seconds
+            # Token budget tracking (simple in-memory implementation)
+            self.token_count = 0
+            self.token_budget = settings.MAX_TOKENS * 100  # Budget for 100 requests
+            logger.info("Initialized LLMService with retry logic")
+    
+    async def invoke_with_retry(
+        self,
+        llm: Any,
+        messages: list,
+        max_retries: Optional[int] = None,
+    ) -> Any:
+        """
+        Invoke LLM with exponential backoff retry logic
+        
+        Args:
+            llm: LLM instance to invoke
+            messages: Messages to send
+            max_retries: Override default max retries
+            
+        Returns:
+            LLM response
+            
+        Raises:
+            Exception: If all retries fail
+        """
+        retries = 0
+        max_retries = max_retries or self.max_retries
+        last_exception = None
+        
+        while retries <= max_retries:
+            try:
+                # Check token budget
+                if self.token_count > self.token_budget:
+                    logger.warning("Token budget exceeded, consider increasing limit")
+                
+                response = await llm.ainvoke(messages)
+                
+                # Track token usage (estimate from response)
+                if hasattr(response, 'content') and response.content:
+                    estimated_tokens = len(response.content) // 4
+                    self.token_count += estimated_tokens
+                
+                return response
+                
+            except Exception as e:
+                last_exception = e
+                retries += 1
+                
+                if retries > max_retries:
+                    logger.error(f"LLM invocation failed after {max_retries} retries: {e}")
+                    raise
+                
+                # Exponential backoff with jitter
+                delay = min(self.base_delay * (2 ** (retries - 1)), self.max_delay)
+                logger.warning(
+                    f"LLM invocation failed (attempt {retries}/{max_retries}), "
+                    f"retrying in {delay:.1f}s: {e}"
+                )
+                await asyncio.sleep(delay)
+        
+        # Should never reach here, but just in case
+        raise last_exception
     
     def get_llm(
         self,
@@ -119,6 +185,15 @@ class LLMService:
         """Clear cached LLM instance"""
         self._llm = None
         logger.info("Cleared LLM cache")
+    
+    def reset_token_count(self):
+        """Reset token count tracker"""
+        self.token_count = 0
+        logger.info("Reset token count tracker")
+    
+    def get_token_usage(self) -> int:
+        """Get current token usage"""
+        return self.token_count
 
 
 # Convenience function
@@ -126,3 +201,19 @@ def get_llm(**kwargs) -> Any:
     """Get LLM instance with specified parameters"""
     service = LLMService()
     return service.get_llm(**kwargs)
+
+
+async def invoke_llm_with_retry(llm: Any, messages: list, **kwargs) -> Any:
+    """
+    Convenience function to invoke LLM with retry logic
+    
+    Args:
+        llm: LLM instance
+        messages: Messages to send
+        **kwargs: Additional arguments for retry configuration
+        
+    Returns:
+        LLM response
+    """
+    service = LLMService()
+    return await service.invoke_with_retry(llm, messages, **kwargs)
