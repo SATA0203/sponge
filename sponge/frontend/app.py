@@ -17,6 +17,7 @@ TASKS_ENDPOINT = f"{API_BASE_URL}/api/v1/tasks"
 WORKFLOW_ENDPOINT = f"{API_BASE_URL}/api/v1/workflow/execute"
 FILES_ENDPOINT = f"{API_BASE_URL}/api/v1/files"
 HEALTH_ENDPOINT = f"{API_BASE_URL}/api/health"
+EXTENSIONS_ENDPOINT = f"{API_BASE_URL}/api/v1/extensions"
 
 st.set_page_config(
     page_title="Sponge - Multi-Agent System",
@@ -253,7 +254,7 @@ def render_main_dashboard():
         
         menu = st.radio(
             "导航菜单",
-            ["新建任务", "任务列表", "系统监控", "关于"],
+            ["新建任务", "任务列表", "扩展库", "系统监控", "关于"],
             label_visibility="collapsed"
         )
         

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.api import tasks, files, health, arch_health
+from app.api import tasks, files, health, arch_health, extensions
 from app.db import init_db
 
 
@@ -55,6 +55,7 @@ app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(files.router, prefix="/api/v1/files", tags=["files"])
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(arch_health.router, tags=["architecture-health"])
+app.include_router(extensions.router, tags=["extensions"])
 
 
 @app.get("/")

@@ -1,4 +1,4 @@
-```gitignore
+```
 # Python
 __pycache__/
 *.py[cod]
@@ -24,25 +24,13 @@ wheels/
 # Environment
 .env
 .env.local
-.env.*
-.venv/
-venv/
-ENV/
+*.env.*
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*.tmp
 
-# Logs
-*.log
-
-# Coverage
-.coverage
-coverage/
-htmlcov/
+# OS
+.DS_Store
+Thumbs.db
 ```
-Nothing should be ignored based on the provided file changes, as they only include README.md files which are source/documentation files.
-(docs/architecture_health_metrics.md, ARCH_HEALTH_SYSTEM_DESIGN.md)
