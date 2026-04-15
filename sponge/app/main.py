@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import settings
 from app.api import tasks, files, health
+from app.db import init_db
 
 
 @asynccontextmanager
@@ -16,6 +17,14 @@ async def lifespan(app: FastAPI):
     # Startup
     print(f"🚀 Starting {settings.APP_NAME} v{settings.VERSION}")
     print(f"📡 API Server: http://{settings.HOST}:{settings.PORT}")
+    
+    # Initialize database
+    try:
+        init_db()
+        print("✅ Database initialized")
+    except Exception as e:
+        print(f"⚠️  Database initialization warning: {e}")
+    
     yield
     # Shutdown
     print(f"👋 Shutting down {settings.APP_NAME}")
