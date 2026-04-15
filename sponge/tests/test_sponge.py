@@ -69,7 +69,8 @@ class TestAgents:
         assert result is not None
         code = result.get("code", "")
         assert code is not None and len(code) > 0
-        print(f"✓ Coder generated code: {code[:50]}...")
+        code_preview = code[:50] if len(code) > 50 else code
+        print(f"✓ Coder generated code: {code_preview}...")
     
     @pytest.mark.asyncio
     async def test_reviewer_agent(self):
