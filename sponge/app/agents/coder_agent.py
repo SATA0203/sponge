@@ -1,5 +1,11 @@
 """
 Coder Agent - Generates code based on plans and requirements
+
+REFACTORED: Now follows Orchestrator-Worker pattern
+- No fixed "coder" boundaries - can reason about architecture, testing, etc.
+- Reads from external state (spec.md, history.jsonl)
+- Outputs reasoning chain for continuity
+- Does not pass work to next agent (Orchestrator coordinates)
 """
 
 from typing import Any, Dict, List, Optional
@@ -8,21 +14,38 @@ from langchain_core.language_models import BaseLanguageModel
 from loguru import logger
 
 from .base_agent import BaseAgent
+from ..core.task_progress import TaskProgress
 
 
 class CoderAgent(BaseAgent):
-    """Agent responsible for generating code based on plans"""
+    """Agent responsible for generating code based on plans
     
-    def __init__(self, llm: BaseLanguageModel, name: str = "Coder"):
+    REFACTORED: This agent now:
+    - Is a general-purpose worker, not limited to "coding"
+    - Reads task spec and history from external state
+    - Appends reasoning to history, not just code conclusions
+    - Does not pass work to reviewer (Orchestrator coordinates validation)
+    """
+    
+    def __init__(self, llm: BaseLanguageModel, name: str = "Worker", task_progress: Optional[TaskProgress] = None):
         super().__init__(
             llm=llm,
             name=name,
-            role="coder",
+            role="worker",  # Changed from "coder" - this is a general worker
         )
+        self.task_progress = task_progress
     
     def _default_system_prompt(self) -> str:
-        return """You are an expert software engineer and coding agent.
-Your role is to write clean, efficient, and well-documented code.
+        return """You are an expert software engineer performing implementation work.
+
+IMPORTANT: You are NOT limited to just "writing code". You can:
+- Reason about architecture and design decisions
+- Identify potential issues in the plan
+- Suggest improvements to requirements
+- Think about testing and edge cases
+- Question assumptions if something seems wrong
+
+Your task is to write clean, efficient, and well-documented code.
 
 Guidelines:
 1. Write clean, readable, and maintainable code
@@ -31,13 +54,18 @@ Guidelines:
 4. Add clear comments and docstrings
 5. Write modular and testable code
 6. Consider edge cases and input validation
+7. EXPLICITLY STATE YOUR REASONING for implementation decisions (critical!)
 
 Output Format:
 Return a JSON object with:
 - code: The generated code as a string
 - language: Programming language used
 - explanation: Brief explanation of the implementation
+- reasoning: KEY IMPLEMENTATION DECISIONS AND WHY (REQUIRED)
 - dependencies: List of required dependencies (if any)
+- potential_issues: Any concerns or edge cases you identified
+
+Note: Do NOT assume your output goes to a "reviewer". The Orchestrator will coordinate validation.
 """
     
     async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
