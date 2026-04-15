@@ -1,38 +1,52 @@
 ```
-# Compiled Python files
-*.pyc
+# Python
 __pycache__/
-
-# Dependencies
-.venv/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
 venv/
+.venv/
+.venv-local/
+.ENV
+.ENV.local
 .env
 .env.local
-*.env.*
+.env.*
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.sass-cache/
+.wafpickle-*
+coverage/
 
 # Logs
 *.log
 
-# Coverage reports
-.coverage
-coverage/
-htmlcov/
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# IDE files
+# Testing
+.pytest_cache/
+.noseids
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*.tmp
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Build artifacts
-dist/
-build/
-target/
-.mypy_cache/
-.pytest_cache/
+*~
 ```
