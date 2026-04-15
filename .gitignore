@@ -88,3 +88,5 @@ celerybeat.pid
 # Docker
 .dockerenv
 ```
+# Documentation
+IMPROVEMENT_SUGGESTIONS.md
