@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import select
 from datetime import datetime
 import uuid
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 
 from app.db.models import TaskModel, TaskStatusEnum, FileModel
 
@@ -14,8 +14,24 @@ from app.db.models import TaskModel, TaskStatusEnum, FileModel
 class DatabaseTaskManager:
     """Manage tasks using database persistence"""
     
-    def __init__(self, db: Session):
+    def __init__(self, db: Optional[Session] = None):
         self.db = db
+        self._owns_session = False
+    
+    def _get_session(self) -> Session:
+        """Get database session, creating one if needed"""
+        if self.db is None:
+            from app.db.database import get_db_session
+            self.db = get_db_session()
+            self._owns_session = True
+        return self.db
+    
+    def _close_session(self):
+        """Close session if we own it"""
+        if self._owns_session and self.db:
+            self.db.close()
+            self.db = None
+            self._owns_session = False
     
     def create_task(
         self,
