@@ -20,7 +20,7 @@ file_tools = FileTools(workspace_root="/tmp/sponge_workspace")
 
 @router.get("/", response_model=FileListResponse)
 async def list_files(
-    task_id: str = Query(..., description="Task ID"),
+    task_id: Optional[str] = Query(None, description="Task ID"),
     directory: str = Query("", description="Directory path"),
     recursive: bool = Query(False, description="List files recursively"),
 ):
