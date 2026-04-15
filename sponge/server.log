@@ -1,0 +1,44 @@
+OpenBLAS WARNING - could not determine the L2 cache size on this system, assuming 256k
+INFO:     Started server process [3216]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8000): [errno 98] address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+🚀 Starting Sponge v0.1.0
+📡 API Server: http://0.0.0.0:8000
+✅ Database initialized
+👋 Shutting down Sponge
+INFO:     127.0.0.1:47158 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47160 - "POST /api/v1/tasks/execute HTTP/1.1" 201 Created
+2026-04-15 06:58:49.184 | INFO     | app.workflow.workflow_graph:_build_graph:68 - Workflow graph compiled successfully
+2026-04-15 06:58:49.185 | INFO     | app.workflow.workflow_graph:__init__:28 - WorkflowManager initialized
+2026-04-15 06:58:49.185 | INFO     | app.workflow.workflow_graph:execute:144 - Starting workflow for task 9147a16c-c7ca-47fb-b363-498ba2c37815: Create a function that adds two numbers...
+2026-04-15 06:58:49.268 | INFO     | app.workflow.nodes:planner_node:77 - [Planner] Creating plan for task: 9147a16c-c7ca-47fb-b363-498ba2c37815
+2026-04-15 06:58:49.268 | INFO     | app.core.llm_service:__init__:29 - Initialized LLMService
+2026-04-15 06:58:49.268 | INFO     | app.core.llm_service:get_llm:64 - Creating LLM instance: openai/gpt-4o
+2026-04-15 06:58:49.268 | WARNING  | app.core.llm_service:get_llm:79 - OPENAI_API_KEY not configured, falling back to Mock LLM
+2026-04-15 06:58:49.269 | INFO     | app.agents.base_agent:__init__:37 - Initialized agent: Planner (planner)
+2026-04-15 06:58:49.307 | INFO     | app.agents.planner_agent:execute:85 - Generated plan with 1 steps
+2026-04-15 06:58:49.308 | INFO     | app.workflow.nodes:planner_node:86 - [Planner] Plan created: Auto-generated plan
+2026-04-15 06:58:49.309 | INFO     | app.workflow.nodes:coder_node:111 - [Coder] Generating code for task: 9147a16c-c7ca-47fb-b363-498ba2c37815
+2026-04-15 06:58:49.309 | INFO     | app.agents.base_agent:__init__:37 - Initialized agent: Coder (coder)
+2026-04-15 06:58:49.310 | INFO     | app.agents.coder_agent:execute:98 - Generated python code (22 chars)
+2026-04-15 06:58:49.310 | INFO     | app.workflow.nodes:coder_node:121 - [Coder] Code generated (22 chars)
+2026-04-15 06:58:49.311 | INFO     | app.workflow.nodes:executor_node:146 - [Executor] Executing code for task: 9147a16c-c7ca-47fb-b363-498ba2c37815
+2026-04-15 06:58:49.311 | INFO     | app.tools.code_executor:__init__:35 - Initialized CodeExecutor (timeout=30s, docker=False)
+2026-04-15 06:58:49.728 | INFO     | app.tools.code_executor:execute:74 - Code execution completed in 0.42s
+2026-04-15 06:58:49.728 | INFO     | app.workflow.nodes:executor_node:160 - [Executor] Execution successful in 0.42s
+2026-04-15 06:58:49.729 | INFO     | app.workflow.nodes:reviewer_node:187 - [Reviewer] Reviewing code for task: 9147a16c-c7ca-47fb-b363-498ba2c37815
+2026-04-15 06:58:49.730 | INFO     | app.agents.base_agent:__init__:37 - Initialized agent: Reviewer (reviewer)
+2026-04-15 06:58:49.745 | INFO     | app.agents.reviewer_agent:execute:95 - Code review completed - Score: 8/10, Passed: True
+2026-04-15 06:58:49.745 | INFO     | app.workflow.nodes:reviewer_node:205 - [Reviewer] Code passed review (score: 8/10)
+2026-04-15 06:58:49.747 | INFO     | app.workflow.workflow_graph:_should_continue:95 - Code passed review, ending workflow
+2026-04-15 06:58:49.764 | INFO     | app.workflow.workflow_graph:execute:159 - Workflow completed for task 9147a16c-c7ca-47fb-b363-498ba2c37815 with status: completed
+INFO:     127.0.0.1:47162 - "GET /api/v1/tasks/9147a16c-c7ca-47fb-b363-498ba2c37815 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47164 - "GET /api/v1/tasks/ HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47166 - "GET /api/v1/files/ HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [3168]
