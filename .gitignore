@@ -1,92 +1,38 @@
 ```
-# Dependencies
-venv/
-.venv/
+# Compiled Python files
+*.pyc
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
+
+# Dependencies
+.venv/
+venv/
+.env
+.env.local
+*.env.*
+
+# Logs
 *.log
-*.pot
-*.pyc
-*.pyo
-*.pyd
-*.so
-*.egg-info/
-.eggs/
-.venv.bak/
-.env
-.env.local
-.env.*
 
-# Build and distribution artifacts
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg
-*.egg-info
-.installed.cfg
-*.egg-link
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
 
-# Testing
-.tests/
-test/
-tests/
-.pytest_cache/
-.coverage/
-
-# Environment specific
-.env
-.env.local
-.env.*
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# IDE and editor files
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
+*.tmp
+
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
-# Docker
-.dockerenv
+# Build artifacts
+dist/
+build/
+target/
+.mypy_cache/
+.pytest_cache/
 ```
-# Documentation
-IMPROVEMENT_SUGGESTIONS.md
