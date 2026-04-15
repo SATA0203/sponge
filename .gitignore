@@ -1,1 +1,13 @@
-Nothing should be ignored in this case, as the changes only include Python test files (.py) which are source code files that should be tracked in version control.
+```
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database
+sponge/sponge.db
+
+# Test cache
+.sponge/tests/__pycache__/
+```
