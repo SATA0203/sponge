@@ -1,10 +1,10 @@
-# SelfEvolve Code Agent
+# Sponge Code Agent
 
 A self-evolving programming assistant built with LangChain and LangGraph that can autonomously complete software development tasks through iterative code generation, execution, testing, and refinement.
 
 ## Overview
 
-**SelfEvolve Code Agent** is an intelligent programming assistant powered by large language models (LLMs) and LangGraph workflow engine. It receives natural language development tasks and autonomously completes the entire workflow including:
+**Sponge Code Agent** is an intelligent programming assistant powered by large language models (LLMs) and LangGraph workflow engine. It receives natural language development tasks and autonomously completes the entire workflow including:
 
 - 📋 Requirement Analysis
 - 💻 Code Generation
@@ -67,7 +67,7 @@ The system is built on a stateful directed graph architecture using LangGraph:
 
 ## Documentation
 
-- [Product Requirements Document](./PRD_SelfEvolveCodeAgent.md) - Detailed product specifications
+- [Product Requirements Document](./PRD_SpongeCodeAgent.md) - Detailed product specifications
 - [Technical Report](./langchain_langgraph_self_evolving_system.md) - In-depth technical analysis
 
 ## Getting Started
@@ -112,7 +112,7 @@ print(result.code)
 ```
 sponge/
 ├── README.md                          # This file
-├── PRD_SelfEvolveCodeAgent.md        # Product requirements
+├── PRD_SpongeCodeAgent.md            # Product requirements
 ├── langchain_langgraph_self_evolving_system.md  # Technical documentation
 ├── src/                               # Source code (coming soon)
 ├── tests/                             # Test suite (coming soon)
