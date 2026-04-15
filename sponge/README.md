@@ -136,9 +136,19 @@ sponge/
 
 ## Documentation
 
-- [Development Guide](DEVELOPMENT.md) - Setup and development instructions
-- [PRD Document](PRD_Sponge.md) - Product requirements
-- [Multi-Agent Guide](MULTI_AGENT_COLLABORATION.md) - Agent collaboration details
+### Quick Start
+- [Getting Started](GET_STARTED.md) - Environment setup and installation
+- [Development Guide](DEVELOPMENT.md) - Development workflow and best practices
+
+### Technical Documentation
+- [API Reference](docs/API_REFERENCE.md) - Complete REST API documentation
+- [Architecture](docs/ARCHITECTURE.md) - System architecture and design
+- [Multi-Agent Guide](docs/MULTI_AGENT_GUIDE.md) - Agent collaboration details
+- [Documentation Index](docs/README.md) - Navigate all documentation
+
+### Project Documents
+- [PRD](PRD_SpongeCodeAgent.md) - Product requirements document
+- [Progress](PROGRESS.md) - Current development status
 
 ## Technology Stack
 
