@@ -16,37 +16,33 @@ Sponge - Multi-Agent Collaborative Code Development System
 
 ## Quick Start
 
+### 🚀 快速部署 (推荐)
+
+**方式一：Docker 一键启动**
+
+```bash
+cd /workspace/sponge
+
+# 配置环境变量
+cp docker/.env.example .env
+# 编辑 .env，设置 LLM_API_KEY
+
+# 启动所有服务
+docker-compose -f docker/docker-compose.yml up -d
+
+# 访问前端界面
+open http://localhost:8501
+```
+
+**方式二：本地开发部署**
+
+详见 [QUICKSTART.md](QUICKSTART.md)
+
 ### Prerequisites
 
 - Python 3.9+
 - Docker & Docker Compose
-- Node.js 16+ (optional, for frontend)
-
-### Installation
-
-```bash
-# Clone the repository
-cd sponge
-
-# Copy environment configuration
-cp .env.example .env
-
-# Edit .env with your API keys
-# LLM_PROVIDER=openai
-# OPENAI_API_KEY=your_key_here
-
-# Start with Docker Compose
-docker-compose up -d
-
-# Access API documentation
-open http://localhost:8000/docs
-```
-
-### Local Development
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
+- Redis (for Celery)
 
 # Start infrastructure services
 docker-compose up -d postgres redis
@@ -203,3 +199,93 @@ For issues and questions:
 ---
 
 **Sponge** - Absorbing complexity, expelling code.
+
+## 📚 文档导航
+
+| 文档 | 说明 |
+|------|------|
+| [🚀 快速启动](QUICKSTART.md) | 5 分钟快速部署指南 |
+| [📖 API 参考](docs/API_REFERENCE.md) | 完整的 REST API 文档 |
+| [🏗️ 架构说明](docs/ARCHITECTURE.md) | 系统架构和设计原理 |
+| [🛠️ 开发指南](docs/DEVELOPMENT_GUIDE.md) | 开发者完整指南 |
+| [🤖 多智能体指南](docs/MULTI_AGENT_GUIDE.md) | Agent 协作机制详解 |
+| [🐳 Docker 部署](docker/README.md) | 容器化部署指南 |
+
+## 🎯 核心功能
+
+### 多智能体协作
+
+- **📋 Planner Agent**: 需求分析和任务规划
+- **💻 Coder Agent**: 代码生成和实现
+- **🔍 Reviewer Agent**: 代码审查和质量保证
+- **🧪 Tester Agent**: 测试用例生成和验证
+
+### 技术特性
+
+- **LangGraph 工作流**: 状态机驱动的智能体编排
+- **Celery 异步任务**: 分布式任务队列支持
+- **JWT 认证**: 安全的 API 访问控制
+- **数据库持久化**: SQLAlchemy + SQLite/PostgreSQL
+- **实时前端**: Streamlit 交互式界面
+
+## 📊 项目结构
+
+```
+sponge/
+├── app/                    # 核心应用代码
+│   ├── agents/            # 智能体实现
+│   ├── api/               # REST API 端点
+│   ├── core/              # 核心配置和服务
+│   ├── db/                # 数据库模型和管理
+│   ├── tools/             # 工具函数
+│   ├── workflow/          # 工作流定义
+│   └── main.py            # 应用入口
+├── frontend/              # Streamlit 前端
+│   ├── app.py            # 前端主程序
+│   └── requirements.txt  # 前端依赖
+├── docker/                # Docker 配置
+│   ├── docker-compose.yml
+│   ├── Dockerfile.api
+│   └── Dockerfile.frontend
+├── docs/                  # 项目文档
+├── tests/                 # 测试用例
+└── QUICKSTART.md         # 快速启动指南
+```
+
+## 🧪 运行测试
+
+```bash
+# 运行所有测试
+pytest tests/ -v
+
+# 运行特定测试
+pytest tests/test_sponge.py -v
+
+# 查看测试覆盖率
+pytest --cov=app tests/
+```
+
+## 🤝 贡献指南
+
+1. Fork 项目
+2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+## 📄 许可证
+
+MIT License
+
+## 🙏 致谢
+
+感谢以下开源项目:
+- [FastAPI](https://fastapi.tiangolo.com/)
+- [LangGraph](https://github.com/langchain-ai/langgraph)
+- [Streamlit](https://streamlit.io/)
+- [Celery](https://docs.celeryq.dev/)
+- [SQLAlchemy](https://www.sqlalchemy.org/)
+
+---
+
+**🎉 开始使用 Sponge，体验多智能体协作的代码生成！**

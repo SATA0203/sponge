@@ -4,50 +4,32 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Database
-sponge/sponge.db
-
-# Dependencies
-.venv/
-venv/
+.Python
 env/
-node_modules/
-
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-*.swp
-*.swo
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-
-# Build artifacts
-build/
-dist/
-target/
-*.out
-*.exe
-*.dll
-*.so
-*.a
-
-# Coverage
-coverage/
-htmlcov/
+venv/
+.venv/
+.ENV
+.venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
 .coverage
-
-# Caches
-.mypy_cache/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
 .pytest_cache/
-.gradle/
+.mypy_cache/
+
+# Streamlit
+.streamlit/
+
+# Docker
+.dockerenv
+
+# OS
+.DS_Store
+Thumbs.db
 ```
