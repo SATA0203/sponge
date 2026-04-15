@@ -32,12 +32,12 @@ class WorkerAgent(BaseAgent):
         task_type: str = "general",
         name: str = "Worker",
     ):
+        self.task_type = task_type  # Set before calling super().__init__
         super().__init__(
             llm=llm,
             name=name,
             role=f"worker:{task_type}",
         )
-        self.task_type = task_type
     
     def _default_system_prompt(self) -> str:
         """Generate system prompt based on task type"""
