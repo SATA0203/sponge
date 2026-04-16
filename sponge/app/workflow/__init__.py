@@ -1,41 +1,27 @@
 """
-Sponge Workflow Module - Multi-agent workflow system
+Sponge Workflow Module - Orchestrator-Worker Architecture
 
-This module now supports both:
-1. LEGACY: LangGraph-based linear pipeline (Planner -> Coder -> Executor -> Reviewer -> Tester)
-2. NEW: Orchestrator-Worker pattern with external state management
+This module implements the orchestrator-worker pattern for AI agent workflows,
+following best practices from Anthropic, OpenAI, and Google.
 
-The new architecture provides:
-- Better continuity across sessions via external state files
-- Parallel execution of independent sub-tasks
-- Clearer separation of concerns (Orchestrator holds intent, Workers execute)
-- Adversarial validation that doesn't take ownership
+ARCHITECTURE PRINCIPLES:
+- Orchestrator holds complete task intent throughout execution
+- Workers execute sub-tasks in parallel when possible
+- Results flow back to orchestrator, not passed down a pipeline
+- External state files (spec.md, history.jsonl) ensure continuity
+- Validation is adversarial, finding problems without taking ownership
+
+WORKFLOW STAGES:
+1. Planning: Orchestrator decomposes task into sub-tasks
+2. Delegating: Workers execute sub-tasks (can be parallel)
+3. Synthesizing: Orchestrator combines results
+4. Validating: Validator finds issues (doesn't fix)
 """
 
-from .workflow_graph import create_workflow, WorkflowManager, get_workflow_manager
-from .nodes import (
-    planner_node,
-    coder_node,
-    executor_node,
-    reviewer_node,
-    tester_node,
-)
-
-# New orchestrator-worker workflow
+# Orchestrator-Worker workflow
 from .orchestrator_workflow import OrchestratorWorkflow, run_workflow
 
 __all__ = [
-    # Legacy workflow
-    "create_workflow",
-    "WorkflowManager",
-    "get_workflow_manager",
-    "planner_node",
-    "coder_node",
-    "executor_node",
-    "reviewer_node",
-    "tester_node",
-    
-    # New workflow
     "OrchestratorWorkflow",
     "run_workflow",
 ]
