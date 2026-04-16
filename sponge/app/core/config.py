@@ -5,6 +5,7 @@ Sponge Configuration Module
 from pydantic_settings import BaseSettings
 from typing import Optional, List
 from functools import lru_cache
+import warnings
 
 
 class Settings(BaseSettings):
@@ -28,7 +29,7 @@ class Settings(BaseSettings):
     MAX_TOKENS: int = 4096
     
     # Database
-    DATABASE_URL: str = "postgresql://sponge:sponge_password@localhost:5432/sponge_db"
+    DATABASE_URL: str
     DB_POOL_SIZE: int = 10
     DB_ECHO: bool = False
     
@@ -45,7 +46,7 @@ class Settings(BaseSettings):
     SANDBOX_CPU_LIMIT: float = 1.0
     
     # Security
-    SECRET_KEY: str = "change-me-in-production"
+    SECRET_KEY: str
     API_KEY_HEADER: str = "X-API-Key"
     CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8080"]
     
@@ -56,12 +57,32 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+    
+    def validate_security_settings(self) -> None:
+        """Validate security-critical settings"""
+        if self.SECRET_KEY == "change-me-in-production" or len(self.SECRET_KEY) < 32:
+            raise ValueError(
+                "SECRET_KEY must be set to a secure value (at least 32 characters). "
+                "Generate one using: python -c 'import secrets; print(secrets.token_urlsafe(32))'"
+            )
+        
+        # Warn about default database password in production
+        if not self.DEBUG and "sponge_password" in self.DATABASE_URL:
+            warnings.warn(
+                "Using default database password in production environment. "
+                "Please change the DATABASE_URL to use a secure password.",
+                UserWarning,
+                stacklevel=2
+            )
 
 
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance"""
-    return Settings()
+    settings = Settings()
+    # Validate security settings on initialization
+    settings.validate_security_settings()
+    return settings
 
 
 # Global settings instance
