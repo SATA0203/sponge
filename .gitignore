@@ -1,53 +1,37 @@
 ```
-# Dependencies
-node_modules/
-
-# Environment variables
-.env
-.env.local
-.env.*
-
-# Build outputs
-dist/
-build/
-target/
-
-# TypeScript/JavaScript cache
-*.tsbuildinfo
-.cache/
-
-# Logs
-*.log
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Python related (if any Python in project)
+# Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-venv/
+
+# Database
+sponge.db
+
+# Dependencies
 .venv/
+venv/
+env/
 .env
 .env.local
-.env.*
-.mypy_cache/
-.pytest_cache/
-.coverage
-coverage/
-htmlcov/
+*.env.*
 
-# Temporary files
+# Logs
+*.log
+
+# Coverage
+.coverage
+htmlcov/
+coverage/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
 *.tmp
-*.temp
-*~
+
+# OS
+.DS_Store
+Thumbs.db
 ```

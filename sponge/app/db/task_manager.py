@@ -102,7 +102,8 @@ class DatabaseTaskManager:
         if task.errors is None:
             task.errors = []
         
-        task.errors.append(error)
+        # Must reassign list for SQLAlchemy to detect change in JSON column
+        task.errors = task.errors + [error]
         task.updated_at = datetime.utcnow()
         
         self.db.commit()
@@ -167,7 +168,8 @@ class DatabaseTaskManager:
         if reason:
             if task.errors is None:
                 task.errors = []
-            task.errors.append(f"Cancelled: {reason}")
+            # Must reassign list for SQLAlchemy to detect change in JSON column
+            task.errors = task.errors + [f"Cancelled: {reason}"]
         
         self.db.commit()
         self.db.refresh(task)
