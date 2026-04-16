@@ -4,39 +4,12 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-.Python
-env/
-venv/
-.venv/
-.ENV
-.ENV.local
-.env
-.env.local
-.env.*
+*.py~
 
-# Testing
+# Coverage
 .coverage
 coverage/
-htmlcov/
+
+# Testing
 .pytest_cache/
-.mypy_cache/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Logs
-*.log
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
 ```

@@ -244,3 +244,47 @@ Return JSON validation report."""),
             'summary': 'Validation completed with text-based analysis',
             'confidence': 0.5,
         }
+
+    async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute the validator's main validation workflow
+        
+        This method satisfies the BaseAgent abstract method requirement.
+        It delegates to the appropriate validator method based on input.
+        
+        Args:
+            input_data: Dictionary containing:
+                - action: The action to perform (validate, validate_execution)
+                - artifact: The artifact to validate (for validate action)
+                - artifact_type: Type of artifact (for validate action)
+                - requirements: Requirements to validate against (for validate action)
+                - code: Code to validate (for validate_execution action)
+                - execution_result: Execution results (for validate_execution action)
+                - expected_behavior: Expected behavior (for validate_execution action)
+                
+        Returns:
+            Dictionary containing validation results
+        """
+        action = input_data.get("action", "validate")
+        
+        if action == "validate":
+            return await self.validate(
+                artifact=input_data.get("artifact", ""),
+                artifact_type=input_data.get("artifact_type", "code"),
+                requirements=input_data.get("requirements", ""),
+                context=input_data.get("context"),
+            )
+        elif action == "validate_execution":
+            return await self.validate_execution(
+                code=input_data.get("code", ""),
+                execution_result=input_data.get("execution_result", {}),
+                expected_behavior=input_data.get("expected_behavior", ""),
+            )
+        else:
+            # Default: validate
+            return await self.validate(
+                artifact=input_data.get("artifact", ""),
+                artifact_type=input_data.get("artifact_type", "code"),
+                requirements=input_data.get("requirements", ""),
+                context=input_data.get("context"),
+            )
