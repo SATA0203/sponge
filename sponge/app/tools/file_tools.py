@@ -4,6 +4,8 @@ File manipulation tools for Sponge agents
 
 import os
 import shutil
+import json
+from datetime import datetime
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 from loguru import logger
@@ -189,3 +191,118 @@ class FileTools:
         except Exception as e:
             logger.error(f"Error searching files: {e}")
             return []
+
+
+class StateAwareFileTools(FileTools):
+    """
+    Enhanced FileTools with state awareness for Orchestrator-Worker architecture.
+    
+    Provides methods to read/write task state files (spec.md, history.jsonl, etc.)
+    and ensures all operations are logged to the task history for continuity.
+    """
+    
+    def __init__(self, workspace_root: str = "/tmp/sponge_workspace", task_id: Optional[str] = None):
+        super().__init__(workspace_root)
+        self.task_id = task_id
+        self.state_dir = self.workspace_root / (task_id or "default") / ".state"
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+    
+    def write_spec(self, content: str) -> bool:
+        """Write immutable task specification (spec.md)"""
+        spec_path = self.state_dir / "spec.md"
+        with open(spec_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        logger.info(f"[Task {self.task_id}] Spec written to {spec_path}")
+        return True
+    
+    def read_spec(self) -> Optional[str]:
+        """Read task specification"""
+        spec_path = self.state_dir / "spec.md"
+        if not spec_path.exists():
+            return None
+        with open(spec_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    
+    def append_to_history(self, entry: Dict[str, Any]) -> bool:
+        """Append entry to history.jsonl (append-only, preserves reasoning chain)"""
+        import json
+        history_path = self.state_dir / "history.jsonl"
+        entry['timestamp'] = datetime.utcnow().isoformat()
+        entry['task_id'] = self.task_id
+        
+        with open(history_path, 'a', encoding='utf-8') as f:
+            f.write(json.dumps(entry) + '\n')
+        
+        logger.debug(f"[Task {self.task_id}] History entry added: {entry.get('action', 'unknown')}")
+        return True
+    
+    def read_history(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Read recent history entries"""
+        import json
+        history_path = self.state_dir / "history.jsonl"
+        if not history_path.exists():
+            return []
+        
+        entries = []
+        with open(history_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.strip():
+                    entries.append(json.loads(line))
+        
+        return entries[-limit:]
+    
+    def update_current_status(self, status: Dict[str, Any]) -> bool:
+        """Update current status (overwrite)"""
+        import json
+        status_path = self.state_dir / "current_status.json"
+        status['updated_at'] = datetime.utcnow().isoformat()
+        status['task_id'] = self.task_id
+        
+        with open(status_path, 'w', encoding='utf-8') as f:
+            json.dump(status, f, indent=2)
+        
+        logger.debug(f"[Task {self.task_id}] Status updated: {status.get('phase', 'unknown')}")
+        return True
+    
+    def get_current_status(self) -> Optional[Dict[str, Any]]:
+        """Get current status"""
+        import json
+        status_path = self.state_dir / "current_status.json"
+        if not status_path.exists():
+            return None
+        
+        with open(status_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    
+    def add_known_issue(self, issue: str, context: Optional[str] = None) -> bool:
+        """Add known issue to avoid repeating mistakes (append-only)"""
+        import json
+        issues_path = self.state_dir / "known_issues.json"
+        
+        issues = []
+        if issues_path.exists():
+            with open(issues_path, 'r', encoding='utf-8') as f:
+                issues = json.load(f)
+        
+        issues.append({
+            'issue': issue,
+            'context': context,
+            'added_at': datetime.utcnow().isoformat(),
+            'task_id': self.task_id
+        })
+        
+        with open(issues_path, 'w', encoding='utf-8') as f:
+            json.dump(issues, f, indent=2)
+        
+        logger.warning(f"[Task {self.task_id}] Known issue added: {issue[:50]}...")
+        return True
+    
+    def get_known_issues(self) -> List[Dict[str, Any]]:
+        """Get all known issues"""
+        import json
+        issues_path = self.state_dir / "known_issues.json"
+        if not issues_path.exists():
+            return []
+        
+        with open(issues_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
