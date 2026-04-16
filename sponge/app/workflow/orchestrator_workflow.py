@@ -1,5 +1,5 @@
 """
-Orchestrator-Worker Workflow Engine
+Orchestrator-Worker Workflow Engine with Retry Mechanism
 
 This module implements the new workflow engine based on the orchestrator-worker pattern.
 It replaces the old linear pipeline (Planner -> Coder -> Reviewer -> Tester) with:
@@ -7,23 +7,71 @@ It replaces the old linear pipeline (Planner -> Coder -> Reviewer -> Tester) wit
 - Workers execute independent sub-tasks in parallel when possible
 - Validator provides adversarial feedback
 - All state is externalized for continuity
+- Automatic retry mechanism for transient failures
 
 Key differences from old workflow:
 1. No fixed role pipeline - dynamic task decomposition
 2. Results flow back to Orchestrator, not to next agent
 3. External state files maintain continuity across sessions
 4. Validator only finds problems, doesn't take ownership
+5. Automatic retries with exponential backoff for transient errors
 """
 
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Callable, TypeVar, Union
 from datetime import datetime
 from loguru import logger
+from tenacity import (
+    retry,
+    stop_after_attempt,
+    wait_exponential,
+    retry_if_exception_type,
+    before_sleep_log,
+    after_log,
+)
 
 from app.core.llm_service import get_llm
 from app.agents.orchestrator_agent import OrchestratorAgent
 from app.agents.worker_agent import WorkerAgent
 from app.agents.validator_agent import ValidatorAgent
+
+# Type variable for generic retry decorator
+T = TypeVar('T')
+
+
+def create_retry_decorator(
+    max_attempts: int = 3,
+    min_wait: float = 1.0,
+    max_wait: float = 60.0,
+    exceptions: tuple = (Exception,),
+):
+    """
+    Create a retry decorator with exponential backoff.
+    
+    Args:
+        max_attempts: Maximum number of retry attempts
+        min_wait: Minimum wait time between retries (seconds)
+        max_wait: Maximum wait time between retries (seconds)
+        exceptions: Tuple of exception types to retry on
+    
+    Returns:
+        A retry decorator
+    """
+    import logging
+    
+    return retry(
+        stop=stop_after_attempt(max_attempts),
+        wait=wait_exponential(multiplier=1, min=min_wait, max=max_wait),
+        retry=retry_if_exception_type(exceptions),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        after=after_log(logger, logging.INFO),
+        reraise=True,
+    )
+
+
+class WorkflowExecutionError(Exception):
+    """Custom exception for workflow execution failures"""
+    pass
 
 
 class OrchestratorWorkflow:
@@ -87,16 +135,20 @@ class OrchestratorWorkflow:
 
     async def run(self) -> Dict[str, Any]:
         """
-        Execute the complete workflow
+        Execute the complete workflow with retry mechanism.
         
         Returns final synthesized result.
         """
         logger.info(f"[Workflow] Starting execution (max iterations: {self.max_iterations})")
         
         try:
-            # Phase 1: Analyze and decompose
+            # Phase 1: Analyze and decompose (with retry)
             logger.info("[Workflow] Phase 1: Analysis and decomposition")
-            decomposition = await self.orchestrator.analyze_and_decompose()
+            decomposition = await self._retry_operation(
+                self.orchestrator.analyze_and_decompose,
+                operation_name="analyze_and_decompose",
+                max_attempts=3,
+            )
             
             self.subtasks = decomposition.get('subtasks', [])
             if not self.subtasks:
@@ -109,9 +161,13 @@ class OrchestratorWorkflow:
             logger.info("[Workflow] Phase 2: Executing subtasks")
             await self._execute_subtasks(decomposition)
             
-            # Phase 3: Validate results
+            # Phase 3: Validate results (with retry)
             logger.info("[Workflow] Phase 3: Validation")
-            validation_result = await self._validate_results()
+            validation_result = await self._retry_operation(
+                self._validate_results,
+                operation_name="validate_results",
+                max_attempts=2,
+            )
             
             if not validation_result.get('passed', False):
                 logger.warning("[Workflow] Validation failed - entering fix loop")
@@ -119,13 +175,81 @@ class OrchestratorWorkflow:
                 # Phase 4: Fix iteration loop
                 await self._fix_iteration_loop(validation_result)
             
-            # Phase 5: Synthesize final result
+            # Phase 5: Synthesize final result (with retry)
             logger.info("[Workflow] Phase 4: Synthesis")
-            return await self._synthesize_final_result()
+            return await self._retry_operation(
+                self._synthesize_final_result,
+                operation_name="synthesize_final_result",
+                max_attempts=2,
+            )
             
         except Exception as e:
-            logger.error(f"[Workflow] Execution failed: {e}")
-            raise
+            logger.error(f"[Workflow] Execution failed after retries: {e}")
+            raise WorkflowExecutionError(f"Workflow execution failed: {e}") from e
+    
+    async def _retry_operation(
+        self,
+        operation: Callable,
+        operation_name: str,
+        max_attempts: int = 3,
+        min_wait: float = 1.0,
+        max_wait: float = 30.0,
+    ) -> Any:
+        """
+        Execute an operation with automatic retry on transient failures.
+        
+        Args:
+            operation: Async callable to execute
+            operation_name: Name of the operation for logging
+            max_attempts: Maximum number of retry attempts
+            min_wait: Minimum wait time between retries (seconds)
+            max_wait: Maximum wait time between retries (seconds)
+        
+        Returns:
+            Result of the operation
+        
+        Raises:
+            WorkflowExecutionError: If all retry attempts fail
+        """
+        last_exception: Optional[Exception] = None
+        
+        for attempt in range(1, max_attempts + 1):
+            try:
+                logger.info(f"[Workflow] Executing {operation_name} (attempt {attempt}/{max_attempts})")
+                
+                if asyncio.iscoroutinefunction(operation):
+                    result = await operation()
+                else:
+                    result = operation()
+                
+                logger.info(f"[Workflow] {operation_name} completed successfully")
+                return result
+                
+            except asyncio.TimeoutError as e:
+                last_exception = e
+                logger.warning(
+                    f"[Workflow] {operation_name} timed out (attempt {attempt}/{max_attempts}): {e}"
+                )
+                if attempt < max_attempts:
+                    wait_time = min(min_wait * (2 ** (attempt - 1)), max_wait)
+                    logger.info(f"[Workflow] Retrying in {wait_time:.1f}s...")
+                    await asyncio.sleep(wait_time)
+                    
+            except Exception as e:
+                last_exception = e
+                logger.warning(
+                    f"[Workflow] {operation_name} failed (attempt {attempt}/{max_attempts}): {e}"
+                )
+                if attempt < max_attempts:
+                    wait_time = min(min_wait * (2 ** (attempt - 1)), max_wait)
+                    logger.info(f"[Workflow] Retrying in {wait_time:.1f}s...")
+                    await asyncio.sleep(wait_time)
+                else:
+                    break
+        
+        error_msg = f"{operation_name} failed after {max_attempts} attempts"
+        logger.error(f"[Workflow] {error_msg}: {last_exception}")
+        raise WorkflowExecutionError(error_msg) from last_exception
 
     async def _execute_subtasks(self, decomposition: Dict[str, Any]):
         """Execute all subtasks with parallelization where possible"""

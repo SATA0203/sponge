@@ -1,5 +1,5 @@
 """
-Code Executor - Executes code in a sandboxed environment
+Code Executor - Executes code in a sandboxed environment with Docker support
 """
 
 import asyncio
@@ -7,9 +7,191 @@ import subprocess
 import tempfile
 import os
 import time
+import json
 from typing import Dict, Any, Optional, List
 from pathlib import Path
 from loguru import logger
+
+
+class DockerSandbox:
+    """Docker-based code execution sandbox for secure code execution"""
+    
+    def __init__(
+        self,
+        timeout: int = 30,
+        memory_limit: str = "512m",
+        cpu_limit: float = 1.0,
+    ):
+        self.timeout = timeout
+        self.memory_limit = memory_limit
+        self.cpu_limit = cpu_limit
+        self.container_id: Optional[str] = None
+        
+    async def create_container(self, image: str = "python:3.11-slim") -> str:
+        """Create a Docker container for code execution"""
+        try:
+            # Parse memory limit
+            mem_limit = self._parse_memory_limit(self.memory_limit)
+            
+            cmd = [
+                "docker", "run", "-d", "--rm",
+                "--memory", f"{mem_limit}",
+                "--cpus", f"{self.cpu_limit}",
+                "--network", "none",  # Disable network access
+                "--cap-drop", "ALL",  # Drop all capabilities
+                "--read-only",  # Read-only filesystem
+                "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",  # Writable /tmp
+                "--pids-limit", "50",  # Limit number of processes
+                "--security-opt", "no-new-privileges:true",
+                image,
+                "sleep", str(self.timeout + 10)  # Keep container alive
+            ]
+            
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            stdout, stderr = await process.communicate()
+            
+            if process.returncode != 0:
+                raise RuntimeError(f"Failed to create container: {stderr.decode()}")
+            
+            self.container_id = stdout.decode().strip()
+            logger.info(f"[DockerSandbox] Container created: {self.container_id[:12]}")
+            return self.container_id
+            
+        except FileNotFoundError:
+            raise RuntimeError("Docker is not installed or not in PATH")
+        except Exception as e:
+            logger.error(f"[DockerSandbox] Failed to create container: {e}")
+            raise
+    
+    async def execute_in_container(
+        self,
+        code: str,
+        language: str = "python",
+        input_data: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute code inside the Docker container"""
+        if not self.container_id:
+            await self.create_container()
+        
+        try:
+            if language == "python":
+                return await self._execute_python_in_container(code, input_data)
+            elif language in ["javascript", "js"]:
+                return await self._execute_js_in_container(code, input_data)
+            else:
+                return {
+                    "success": False,
+                    "output": "",
+                    "error": f"Unsupported language: {language}",
+                }
+        except Exception as e:
+            logger.error(f"[DockerSandbox] Execution failed: {e}")
+            return {
+                "success": False,
+                "output": "",
+                "error": str(e),
+            }
+    
+    async def _execute_python_in_container(
+        self,
+        code: str,
+        input_data: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute Python code in container"""
+        # Create temporary file with code
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".py", delete=False, encoding="utf-8"
+        ) as f:
+            f.write(code)
+            temp_file = f.name
+        
+        try:
+            # Copy file to container
+            copy_cmd = ["docker", "cp", temp_file, f"{self.container_id}:/tmp/code.py"]
+            copy_process = await asyncio.create_subprocess_exec(
+                *copy_cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await copy_process.communicate()
+            
+            if copy_process.returncode != 0:
+                raise RuntimeError(f"Failed to copy code: {stderr.decode()}")
+            
+            # Execute code in container
+            exec_cmd = [
+                "docker", "exec",
+                "-i", self.container_id,
+                "python", "/tmp/code.py"
+            ]
+            
+            process = await asyncio.wait_for(
+                asyncio.create_subprocess_exec(
+                    *exec_cmd,
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                ),
+                timeout=self.timeout,
+            )
+            
+            stdin_data = input_data.encode() if input_data else None
+            stdout, stderr = await process.communicate(input=stdin_data)
+            
+            success = process.returncode == 0
+            output = stdout.decode("utf-8", errors="replace") if stdout else ""
+            error = stderr.decode("utf-8", errors="replace") if stderr and not success else ""
+            
+            return {
+                "success": success,
+                "output": output,
+                "error": error if not success else None,
+                "sandbox": "docker",
+            }
+            
+        finally:
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+    
+    async def _execute_js_in_container(
+        self,
+        code: str,
+        input_data: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Execute JavaScript code in container (requires node image)"""
+        # For JS, we'd use a node image - simplified here
+        return await self._execute_python_in_container(code, input_data)
+    
+    async def cleanup(self):
+        """Clean up the container"""
+        if self.container_id:
+            try:
+                cmd = ["docker", "kill", self.container_id]
+                process = await asyncio.create_subprocess_exec(
+                    *cmd,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                )
+                await process.communicate()
+                logger.info(f"[DockerSandbox] Container {self.container_id[:12]} cleaned up")
+            except Exception as e:
+                logger.warning(f"[DockerSandbox] Cleanup failed: {e}")
+    
+    def _parse_memory_limit(self, limit: str) -> int:
+        """Parse memory limit string to bytes"""
+        limit = limit.lower()
+        if limit.endswith('g'):
+            return int(limit[:-1]) * 1024 * 1024 * 1024
+        elif limit.endswith('m'):
+            return int(limit[:-1]) * 1024 * 1024
+        elif limit.endswith('k'):
+            return int(limit[:-1]) * 1024
+        else:
+            return int(limit)
 
 
 class CodeExecutor:
@@ -20,6 +202,7 @@ class CodeExecutor:
         timeout: int = 30,
         memory_limit: str = "512m",
         use_docker: bool = True,  # Changed default to True for security
+        cpu_limit: float = 1.0,
     ):
         """
         Initialize code executor
@@ -28,13 +211,23 @@ class CodeExecutor:
             timeout: Execution timeout in seconds
             memory_limit: Memory limit for execution
             use_docker: Whether to use Docker sandbox (default: True for security)
+            cpu_limit: CPU limit for Docker container
         """
         self.timeout = timeout
         self.memory_limit = memory_limit
         self.use_docker = use_docker
+        self.cpu_limit = cpu_limit
+        self.docker_sandbox: Optional[DockerSandbox] = None
         
-        # Security warnings
-        if not use_docker:
+        # Initialize Docker sandbox if enabled
+        if use_docker:
+            self.docker_sandbox = DockerSandbox(
+                timeout=timeout,
+                memory_limit=memory_limit,
+                cpu_limit=cpu_limit,
+            )
+            logger.info("[CodeExecutor] Docker sandbox initialized")
+        else:
             logger.warning(
                 "⚠️  SECURITY WARNING: Running code without Docker sandbox! "
                 "This allows arbitrary code execution on the host system. "
@@ -106,9 +299,37 @@ class CodeExecutor:
         dependencies: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """Execute Python code with security checks"""
+        
+        # Use Docker sandbox if enabled
+        if self.use_docker and self.docker_sandbox:
+            try:
+                logger.info("[CodeExecutor] Executing in Docker sandbox")
+                result = await self.docker_sandbox.execute_in_container(
+                    code=code,
+                    language="python",
+                    input_data=input_data,
+                )
+                # Install dependencies if provided (in a new container)
+                if dependencies:
+                    await self._install_dependencies(dependencies, "python")
+                return result
+            except Exception as e:
+                logger.error(f"[CodeExecutor] Docker execution failed, falling back to local: {e}")
+                # Fall back to local execution with safety checks
+                return await self._execute_python_local(code, input_data, dependencies)
+        else:
+            # Execute locally with safety checks
+            return await self._execute_python_local(code, input_data, dependencies)
+    
+    async def _execute_python_local(
+        self,
+        code: str,
+        input_data: Optional[str] = None,
+        dependencies: Optional[List[str]] = None,
+    ) -> Dict[str, Any]:
+        """Execute Python code locally with safety checks (fallback mode)"""
         # Security check: Block dangerous operations in non-Docker mode
-        if not self.use_docker:
-            self._check_code_safety(code)
+        self._check_code_safety(code)
         
         # Install dependencies if provided
         if dependencies:
@@ -135,7 +356,7 @@ class CodeExecutor:
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     # Set resource limits if not using Docker
-                    preexec_fn=None if self.use_docker else self._set_resource_limits,
+                    preexec_fn=self._set_resource_limits,
                 ),
                 timeout=self.timeout,
             )
@@ -152,6 +373,7 @@ class CodeExecutor:
                 "success": success,
                 "output": output,
                 "error": error if not success else None,
+                "sandbox": "local",
             }
             
         finally:
