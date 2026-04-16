@@ -392,3 +392,45 @@ Work within this context and produce results that will be synthesized by the orc
                 return {"raw_text": response}
         except json.JSONDecodeError:
             return {"raw_text": response}
+
+    async def execute(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Execute the orchestrator's main workflow
+        
+        This method satisfies the BaseAgent abstract method requirement.
+        It delegates to the appropriate orchestrator method based on input.
+        
+        Args:
+            input_data: Dictionary containing:
+                - action: The action to perform (initialize, decompose, execute_subtask, synthesize)
+                - Other parameters depending on the action
+                
+        Returns:
+            Dictionary containing execution results
+        """
+        action = input_data.get("action", "decompose")
+        
+        if action == "initialize":
+            return await self.initialize_task(
+                description=input_data.get("description", ""),
+                language=input_data.get("language", "python"),
+                constraints=input_data.get("constraints"),
+                metadata=input_data.get("metadata"),
+            )
+        elif action == "decompose":
+            return await self.analyze_and_decompose()
+        elif action == "execute_subtask":
+            return await self.execute_subtask(
+                subtask_id=input_data.get("subtask_id", ""),
+                subtask_description=input_data.get("subtask_description", ""),
+                subtask_type=input_data.get("subtask_type", "general"),
+            )
+        elif action == "synthesize":
+            return await self.synthesize_results()
+        elif action == "handle_validation":
+            return await self.handle_validation_feedback(
+                validation_result=input_data.get("validation_result", {}),
+            )
+        else:
+            # Default: analyze and decompose
+            return await self.analyze_and_decompose()
