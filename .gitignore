@@ -1,15 +1,33 @@
 ```
+# Database
+sponge.db
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
 # Python
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
-*.py~
-
-# Coverage
+.Python
+*.so
+*.egg-info/
+.eggs/
 .coverage
-coverage/
-
-# Testing
+htmlcov/
 .pytest_cache/
+.mypy_cache/
+.tox/
 ```
