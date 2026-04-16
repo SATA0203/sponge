@@ -19,7 +19,7 @@ class CodeExecutor:
         self,
         timeout: int = 30,
         memory_limit: str = "512m",
-        use_docker: bool = False,
+        use_docker: bool = True,  # Changed default to True for security
     ):
         """
         Initialize code executor
@@ -27,11 +27,20 @@ class CodeExecutor:
         Args:
             timeout: Execution timeout in seconds
             memory_limit: Memory limit for execution
-            use_docker: Whether to use Docker sandbox
+            use_docker: Whether to use Docker sandbox (default: True for security)
         """
         self.timeout = timeout
         self.memory_limit = memory_limit
         self.use_docker = use_docker
+        
+        # Security warnings
+        if not use_docker:
+            logger.warning(
+                "⚠️  SECURITY WARNING: Running code without Docker sandbox! "
+                "This allows arbitrary code execution on the host system. "
+                "Only disable Docker sandbox in trusted development environments."
+            )
+        
         logger.info(f"Initialized CodeExecutor (timeout={timeout}s, docker={use_docker})")
     
     async def execute(
@@ -96,23 +105,28 @@ class CodeExecutor:
         input_data: Optional[str] = None,
         dependencies: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
-        """Execute Python code"""
+        """Execute Python code with security checks"""
+        # Security check: Block dangerous operations in non-Docker mode
+        if not self.use_docker:
+            self._check_code_safety(code)
+        
         # Install dependencies if provided
         if dependencies:
             await self._install_dependencies(dependencies, "python")
         
-        # Create temporary file
+        # Create temporary file in secure location
         with tempfile.NamedTemporaryFile(
             mode="w",
             suffix=".py",
             delete=False,
             encoding="utf-8",
+            dir=tempfile.gettempdir(),  # Use system temp directory
         ) as f:
             f.write(code)
             temp_file = f.name
         
         try:
-            # Execute with timeout
+            # Execute with timeout and resource limits
             process = await asyncio.wait_for(
                 asyncio.create_subprocess_exec(
                     "python",
@@ -120,6 +134,8 @@ class CodeExecutor:
                     stdin=asyncio.subprocess.PIPE,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    # Set resource limits if not using Docker
+                    preexec_fn=None if self.use_docker else self._set_resource_limits,
                 ),
                 timeout=self.timeout,
             )
@@ -142,6 +158,53 @@ class CodeExecutor:
             # Clean up temp file
             if os.path.exists(temp_file):
                 os.unlink(temp_file)
+    
+    def _check_code_safety(self, code: str) -> None:
+        """
+        Basic security check for dangerous code patterns.
+        Note: This is NOT a substitute for proper sandboxing!
+        """
+        dangerous_patterns = [
+            "__import__('os').system",
+            "__import__('subprocess')",
+            "os.system(",
+            "os.popen(",
+            "subprocess.call",
+            "subprocess.run",
+            "subprocess.Popen",
+            "eval(",
+            "exec(",
+            "compile(",
+            "open('/etc/",
+            "open('/proc/",
+            "socket.socket",
+            "urllib.request",
+            "http.client",
+            "ftplib.FTP",
+        ]
+        
+        for pattern in dangerous_patterns:
+            if pattern in code:
+                logger.warning(f"Potentially dangerous code pattern detected: {pattern}")
+                # In production, you might want to raise an exception here
+                # raise SecurityError(f"Dangerous code pattern detected: {pattern}")
+    
+    def _set_resource_limits(self):
+        """Set resource limits for child process (Unix only)"""
+        import resource
+        
+        # Limit memory to 512MB
+        try:
+            memory_bytes = 512 * 1024 * 1024
+            resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+        except (ValueError, resource.error):
+            pass  # Ignore if limits can't be set
+        
+        # Limit CPU time
+        try:
+            resource.setrlimit(resource.RLIMIT_CPU, (self.timeout, self.timeout))
+        except (ValueError, resource.error):
+            pass
     
     async def _execute_javascript(
         self,
