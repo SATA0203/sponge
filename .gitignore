@@ -4,37 +4,35 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
-
-# Dependencies
-.venv/
-venv/
+.Python
 env/
+venv/
+.venv/
+.venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+*.tmp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Task states (from deleted files)
+sponge/task_states/
+
+# Environment files
 .env
 .env.local
 *.env.*
 
-# Logs
-*.log
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Coverage
-.coverage
-coverage/
-htmlcov/
-
-# Build/test artifacts
-build/
-dist/
-target/
-.mypy_cache/
-.pytest_cache/
+# Docker
+.dockerenv
 ```
