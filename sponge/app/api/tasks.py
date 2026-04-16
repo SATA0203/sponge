@@ -107,10 +107,10 @@ async def execute_task(
         uuid=task_id,
         title=request.title,
         description=request.description,
-        requirements=request.requirements,
-        priority=request.priority,
+        requirements=request.requirements,  # Already Optional[str] from schema
+        priority=str(request.priority),  # Convert int to string for DB
         tags=request.tags or [],
-        assigned_agents=request.assigned_agents or [],
+        assigned_agents=[a.value for a in (request.assigned_agents or [])],  # Convert enum to string
         status=TaskStatusEnum.PENDING,
         current_step=None,
         iterations=0,
@@ -152,9 +152,9 @@ async def create_task(
         title=request.title,
         description=request.description,
         requirements=request.requirements,
-        priority=request.priority,
+        priority=str(request.priority),  # Convert int to string for DB
         tags=request.tags or [],
-        assigned_agents=request.assigned_agents or [],
+        assigned_agents=[a.value for a in (request.assigned_agents or [])],  # Convert enum to string
         status=TaskStatusEnum.PENDING,
         current_step=None,
         iterations=0,

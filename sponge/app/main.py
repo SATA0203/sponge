@@ -5,29 +5,30 @@ Sponge - Main FastAPI Application Entry Point
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from loguru import logger
 
 from app.core.config import settings
-from app.api import tasks, files, health, arch_health, extensions
+from app.api import tasks, files, health, extensions
 from app.db import init_db
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
-    # Startup
-    print(f"🚀 Starting {settings.APP_NAME} v{settings.VERSION}")
-    print(f"📡 API Server: http://{settings.HOST}:{settings.PORT}")
+    # Startup - using loguru for consistent logging
+    logger.info(f"🚀 Starting {settings.APP_NAME} v{settings.VERSION}")
+    logger.info(f"📡 API Server: http://{settings.HOST}:{settings.PORT}")
     
     # Initialize database
     try:
         init_db()
-        print("✅ Database initialized")
+        logger.info("✅ Database initialized")
     except Exception as e:
-        print(f"⚠️  Database initialization warning: {e}")
+        logger.warning(f"⚠️  Database initialization warning: {e}")
     
     yield
     # Shutdown
-    print(f"👋 Shutting down {settings.APP_NAME}")
+    logger.info(f"👋 Shutting down {settings.APP_NAME}")
 
 
 # Create FastAPI application
@@ -54,7 +55,6 @@ app.add_middleware(
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(files.router, prefix="/api/v1/files", tags=["files"])
 app.include_router(health.router, prefix="/health", tags=["health"])
-app.include_router(arch_health.router, tags=["architecture-health"])
 app.include_router(extensions.router, tags=["extensions"])
 
 
