@@ -15,10 +15,14 @@
 
 ```bash
 # 安装依赖
+cd sponge
 pip install -r requirements.txt
 
-# 运行工作流
-python -m app.main --task "Build a REST API with auth"
+# 运行工作流（通过 API）
+python -m app.main
+
+# 或直接调用 Python API
+python -c "from app.workflow import run_workflow; import asyncio; result = asyncio.run(run_workflow('task-1', 'Build a calculator'))"
 ```
 
 ## 📐 核心架构
@@ -56,12 +60,12 @@ python -m app.main --task "Build a REST API with auth"
 
 | 模块 | 路径 | 职责 |
 |-----|------|------|
-| **OrchestratorAgent** | `app/orchestrator/agent.py` | 主协调器，持有完整意图，不传递所有权 |
-| **WorkerAgent** | `app/orchestrator/worker.py` | 通用执行者，支持 6 种动态任务类型 |
-| **ValidatorAgent** | `app/orchestrator/validator.py` | 纯对抗性验证，只找问题不接棒 |
-| **TaskProgress** | `app/core/task_progress.py` | 外部状态管理系统 |
-| **StateAwareFileTools** | `app/tools/file_tools.py` | 增强型文件工具，支持状态感知 |
-| **OrchestratorWorkflow** | `app/orchestrator/workflow.py` | 四阶段工作流引擎 |
+| **OrchestratorAgent** | `sponge/app/agents/orchestrator_agent.py` | 主协调器，持有完整意图，不传递所有权 |
+| **WorkerAgent** | `sponge/app/agents/worker_agent.py` | 通用执行者，支持 6 种动态任务类型 |
+| **ValidatorAgent** | `sponge/app/agents/validator_agent.py` | 纯对抗性验证，只找问题不接棒 |
+| **TaskProgress** | `sponge/app/core/task_progress.py` | 外部状态管理系统 |
+| **StateAwareFileTools** | `sponge/app/tools/file_tools.py` | 增强型文件工具，支持状态感知 |
+| **OrchestratorWorkflow** | `sponge/app/workflow/orchestrator_workflow.py` | 四阶段工作流引擎 |
 
 ## 📁 外部状态系统
 
@@ -79,7 +83,7 @@ python -m app.main --task "Build a REST API with auth"
 ### 基础用法
 
 ```python
-from app.orchestrator.workflow import run_workflow
+from sponge.app.workflow import run_workflow
 
 result = await run_workflow(
     task_id="task-123",
@@ -92,7 +96,7 @@ result = await run_workflow(
 ### 自定义 Worker 任务类型
 
 ```python
-from app.orchestrator.worker import WorkerAgent
+from sponge.app.agents.worker_agent import WorkerAgent
 
 worker = WorkerAgent()
 
@@ -108,7 +112,7 @@ await worker.execute(
 ### 状态查询
 
 ```python
-from app.core.task_progress import TaskProgress
+from sponge.app.core.task_progress import TaskProgress
 
 progress = TaskProgress("task-123")
 

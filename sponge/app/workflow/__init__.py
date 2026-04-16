@@ -21,7 +21,19 @@ WORKFLOW STAGES:
 # Orchestrator-Worker workflow
 from .orchestrator_workflow import OrchestratorWorkflow, run_workflow
 
+
+def get_workflow_manager():
+    """
+    Factory function to get workflow manager instance.
+    
+    Returns:
+        OrchestratorWorkflow class reference for creating instances
+    """
+    return OrchestratorWorkflow
+
+
 __all__ = [
     "OrchestratorWorkflow",
     "run_workflow",
+    "get_workflow_manager",
 ]
