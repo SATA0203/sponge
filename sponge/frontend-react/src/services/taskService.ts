@@ -2,20 +2,22 @@ import apiClient from './api';
 
 export interface Task {
   id: string;
-  uuid: string;
-  title: string;
+  uuid?: string;
+  name: string;
+  title?: string;
   description: string;
   requirements?: string;
-  priority: string;
-  tags: string[];
-  assigned_agents: string[];
-  status: 'pending' | 'planning' | 'coding' | 'executing' | 'reviewing' | 'completed' | 'failed' | 'cancelled';
+  priority: 'low' | 'medium' | 'high' | string;
+  tags?: string[];
+  assigned_agents?: string[];
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'planning' | 'coding' | 'executing' | 'reviewing' | 'cancelled';
   current_step?: string;
-  iterations: number;
-  errors: any[];
+  iterations?: number;
+  errors?: any[];
+  error?: string;
   result?: any;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
   files?: FileItem[];
   agent_results?: Record<string, string>;
 }
@@ -31,6 +33,16 @@ export interface FileItem {
   size: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface CreateTaskDTO {
+  name: string;
+  title?: string;
+  description: string;
+  requirements?: string;
+  language?: string;
+  priority?: string;
+  tags?: string[];
 }
 
 export interface CreateTaskRequest {
@@ -112,6 +124,68 @@ export const fileApi = {
 export const healthApi = {
   check: async (): Promise<any> => {
     const response = await apiClient.get('/health');
+    return response.data;
+  },
+};
+
+// Export service functions for Dashboard component
+export const taskService = {
+  getTasks: async (): Promise<Task[]> => {
+    const response = await apiClient.get('/api/v1/tasks');
+    return response.data;
+  },
+
+  getTask: async (taskId: string): Promise<Task> => {
+    const response = await apiClient.get(`/api/v1/tasks/${taskId}`);
+    return response.data;
+  },
+
+  createTask: async (data: CreateTaskDTO): Promise<Task> => {
+    // Map CreateTaskDTO to the backend expected format
+    const payload = {
+      name: data.name,
+      title: data.title || data.name,
+      description: data.description,
+      requirements: data.requirements,
+      priority: data.priority || 'medium',
+      tags: data.tags || [],
+    };
+    const response = await apiClient.post('/api/v1/tasks', payload);
+    return response.data;
+  },
+
+  deleteTask: async (taskId: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/tasks/${taskId}`);
+  },
+
+  executeWorkflow: async (taskId: string): Promise<any> => {
+    const response = await apiClient.post(`/api/v1/workflow/execute/${taskId}`);
+    return response.data;
+  },
+
+  updateStatus: async (taskId: string, status: string): Promise<Task> => {
+    const response = await apiClient.patch(`/api/v1/tasks/${taskId}/status`, { status });
+    return response.data;
+  },
+};
+
+export const fileService = {
+  getByTask: async (taskUuid: string): Promise<FileItem[]> => {
+    const response = await apiClient.get(`/api/v1/files/task/${taskUuid}`);
+    return response.data;
+  },
+
+  download: async (fileUuid: string): Promise<Blob> => {
+    const response = await apiClient.get(`/api/v1/files/${fileUuid}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+};
+
+export const authService = {
+  login: async (data: LoginRequest): Promise<LoginResponse> => {
+    const response = await apiClient.post('/api/v1/auth/login', data);
     return response.data;
   },
 };
