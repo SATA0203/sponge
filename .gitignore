@@ -1,1 +1,15 @@
-Nothing should be ignored since only a markdown file (DEVELOPMENT_ROADMAP.md) was added, which is a source/config file.
+```
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.py~
+
+# Coverage
+.coverage
+coverage/
+
+# Testing
+.pytest_cache/
+```
