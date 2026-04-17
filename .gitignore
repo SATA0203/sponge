@@ -1,9 +1,27 @@
-```
 # Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
 *.pyc
 *.pyo
 *.pyd
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
 # Database
 sponge.db
@@ -12,6 +30,8 @@ sponge.db
 .venv/
 venv/
 env/
+
+# Environment
 .env
 .env.local
 *.env.*
@@ -34,4 +54,3 @@ coverage/
 # OS
 .DS_Store
 Thumbs.db
-```
